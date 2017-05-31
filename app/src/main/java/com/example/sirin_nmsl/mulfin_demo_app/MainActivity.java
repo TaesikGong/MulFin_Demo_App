@@ -2,11 +2,7 @@ package com.example.sirin_nmsl.mulfin_demo_app;
 
 
 import android.app.Activity;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -16,7 +12,7 @@ import com.android.graphics.CanvasView;
 public class MainActivity extends Activity {
 
     private CanvasView _canvas = null;
-    private Button _btnPen, _btnEraser, _btnHighlight;
+    private Button _btnPen, _btnClear, _btnHighlight;
     private TextView _tvFinger;
     private boolean _eraser = false;
     TypeSetter _setter;
@@ -30,7 +26,7 @@ public class MainActivity extends Activity {
 
         _btnPen = (Button)findViewById(R.id.btn_pen);
         _btnHighlight = (Button)findViewById(R.id.btn_highlight);
-        _btnEraser = (Button)findViewById(R.id.btn_eraser);
+        _btnClear = (Button)findViewById(R.id.btn_clear);
         _tvFinger = (TextView)findViewById(R.id.tv_fingerType);
 
         _setter = new TypeSetter(_canvas);
@@ -48,10 +44,10 @@ public class MainActivity extends Activity {
                 _setter.setHighlighter();
             }
         });
-        _btnEraser.setOnClickListener(new View.OnClickListener() {
+        _btnClear.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                _setter.setEraser();
+                _canvas.clear();  // Clear canvas
             }
         });
 
