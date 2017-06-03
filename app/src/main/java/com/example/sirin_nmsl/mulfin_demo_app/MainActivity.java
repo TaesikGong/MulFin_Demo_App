@@ -14,8 +14,9 @@ public class MainActivity extends Activity {
     private CanvasView _canvas = null;
     private Button _btnPen, _btnClear, _btnHighlight;
     private TextView _tvFinger;
-    private boolean _eraser = false;
     TypeSetter _setter;
+
+//    SensorHolder _holder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,8 +52,8 @@ public class MainActivity extends Activity {
             }
         });
 
+        _canvas.setOnTouchListener(new FingerTouchEventListener(getApplication(), _canvas, _tvFinger));
 
-        _canvas.setOnTouchListener(new FingerTouchEventListener(_canvas, _tvFinger));
     }
 
 

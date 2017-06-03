@@ -174,8 +174,9 @@ public class CanvasView extends View {
 
             // paint.setColor(this.baseColor);
             // paint.setShadowLayer(this.blur, 0F, 0F, this.baseColor);
-        } else {
-            // Otherwise
+        }
+
+        if (this.mode == Mode.DRAW){
             paint.setColor(this.paintStrokeColor);
             paint.setShadowLayer(this.blur, 0F, 0F, this.paintStrokeColor);
             paint.setAlpha(this.opacity);
