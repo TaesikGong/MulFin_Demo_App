@@ -21,17 +21,19 @@ import java.util.List;
 
 public class SensorHolder{
 
-    List<List<Float>> data;
+    List<List<Double>> data;
 
-    final int NUM_FEATURE = 6;
-    final int NUM_DATA = 100;
+    final int NUM_FEATURE = 8;
+    final int NUM_DATA = 500;
+
+    //100x8
 
     SensorHolder()
     {
-        data = new ArrayList<List<Float>>();
+        data = new ArrayList<List<Double>>();
     }
 
-    void pushRow(float [] input)
+    void pushRow(double [] input)
     {
         if(data.size() >= NUM_DATA)
         {
@@ -39,7 +41,7 @@ public class SensorHolder{
         }
 
 
-        data.add(new ArrayList<Float>());
+        data.add(new ArrayList<Double>());
         int idx = data.size()-1;
 
 
@@ -48,9 +50,24 @@ public class SensorHolder{
 
     }
 
-    List<List<Float>> getData()
+    List<List<Double>> getData()
     {
         return data;
+    }
+    double[][] getTransposedData()
+    {
+        double [][]transposedData = new double[NUM_FEATURE][NUM_DATA];//8x100
+
+
+
+        for(int i=0;i<data.size();i++)
+        {
+            for(int j=0;j<data.get(0).size();j++)
+            {
+                transposedData[j][i] = data.get(i).get(j);
+            }
+        }
+        return transposedData;
     }
 
     void clear()
