@@ -54,6 +54,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
              "2_dense_3_W.txt", "2_dense_3_b.txt"};
 
     private boolean logOn = false;
+    private boolean isCalcNeeded = false;
 
     FingerTouchEventListener(Application app, CanvasView canvas, TextView tvFinger) {
 
@@ -142,7 +143,8 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         TPress = event.getPressure();
         TSize = event.getSize();
 
-        if(_holder.isAvailable()) {
+        if(_holder.isAvailable() && isCalcNeeded) {
+            isCalcNeeded = false;
             Log.i("FTEL", "Available");
             switch (fingerClassifier()) {
                 case THUMB:
@@ -162,18 +164,14 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                     break;
             }
         }
-        else
-        {
-            Log.i("FTEL", "Not Available");
 
-        }
         // get masked (not specific to a pointer) action
         int maskedAction = event.getActionMasked();
 
         switch (maskedAction) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
-            case MotionEvent.ACTION_MOVE:
+                isCalcNeeded = true;
                 logOn = true;
                 break;
 
@@ -183,6 +181,8 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 logOn = false;
                 _holder.clear();
 
+                break;
+            case MotionEvent.ACTION_MOVE:
                 break;
         }
 
