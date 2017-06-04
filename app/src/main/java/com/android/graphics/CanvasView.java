@@ -21,6 +21,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -175,13 +176,14 @@ public class CanvasView extends View {
             // paint.setColor(this.baseColor);
             // paint.setShadowLayer(this.blur, 0F, 0F, this.baseColor);
         }
-
-        if (this.mode == Mode.DRAW){
+        else
+        {
             paint.setColor(this.paintStrokeColor);
             paint.setShadowLayer(this.blur, 0F, 0F, this.paintStrokeColor);
             paint.setAlpha(this.opacity);
             paint.setPathEffect(this.drawPathEffect);
         }
+
 
         return paint;
     }

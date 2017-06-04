@@ -3,11 +3,15 @@ package com.example.sirin_nmsl.mulfin_demo_app;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
 import com.android.graphics.CanvasView;
+
+import java.io.File;
+import java.io.FileOutputStream;
 
 public class MainActivity extends Activity {
 
@@ -53,6 +57,7 @@ public class MainActivity extends Activity {
         });
 
         _canvas.setOnTouchListener(new FingerTouchEventListener(getApplication(), _canvas, _tvFinger));
+
 
     }
 

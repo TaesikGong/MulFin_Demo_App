@@ -53,6 +53,16 @@ public class SensorHolder{
         return data;
     }
 
+    void clear()
+    {
+        data.clear();
+    }
+
+    boolean isAvailable()
+    {
+        return data.size() == NUM_DATA;
+    }
+
 
 
 }
