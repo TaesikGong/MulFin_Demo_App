@@ -16,12 +16,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PathEffect;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -33,6 +30,8 @@ import java.util.List;
  * This class defines fields and methods for drawing.
  */
 public class CanvasView extends View {
+
+    private boolean isAvailable = false;
 
     // Enumeration for Mode
     public enum Mode {
@@ -293,6 +292,39 @@ public class CanvasView extends View {
      */
     private void onActionDown(MotionEvent event) {
         switch (this.mode) {
+//            case DRAW   :
+//            case ERASER :
+//                if ((this.drawer != Drawer.QUADRATIC_BEZIER) && (this.drawer != Drawer.QUBIC_BEZIER)) {
+//                    // Oherwise
+//                    this.updateHistory(this.createPath(event));
+//                    this.isDown = true;
+//                } else {
+//                    // Bezier
+//                    if ((this.startX == 0F) && (this.startY == 0F)) {
+//                        // The 1st tap
+//                        this.updateHistory(this.createPath(event));
+//                    } else {
+//                        // The 2nd tap
+//                        this.controlX = event.getX();
+//                        this.controlY = event.getY();
+//
+//                        this.isDown = true;
+//                    }
+//                }
+//
+//                break;
+//            case TEXT   :
+//                this.startX = event.getX();
+//                this.startY = event.getY();
+//
+//                break;
+//            default :
+//                break;
+        }
+    }
+
+    private void onCustomActionDown(MotionEvent event) {
+        switch (this.mode) {
             case DRAW   :
             case ERASER :
                 if ((this.drawer != Drawer.QUADRATIC_BEZIER) && (this.drawer != Drawer.QUBIC_BEZIER)) {
@@ -333,73 +365,79 @@ public class CanvasView extends View {
         float x = event.getX();
         float y = event.getY();
 
-        switch (this.mode) {
-            case DRAW   :
-            case ERASER :
+        if(isAvailable) {
+            switch (this.mode) {
+                case DRAW:
+                case ERASER:
 
-                if ((this.drawer != Drawer.QUADRATIC_BEZIER) && (this.drawer != Drawer.QUBIC_BEZIER)) {
-                    if (!isDown) {
-                        return;
+                    if ((this.drawer != Drawer.QUADRATIC_BEZIER) && (this.drawer != Drawer.QUBIC_BEZIER)) {
+                        if (!isDown) {
+                            return;
+                        }
+
+                        Path path = this.getCurrentPath();
+
+                        switch (this.drawer) {
+                            case PEN:
+                                path.lineTo(x, y);
+                                break;
+                            case LINE:
+                                path.reset();
+                                path.moveTo(this.startX, this.startY);
+                                path.lineTo(x, y);
+                                break;
+                            case RECTANGLE:
+                                path.reset();
+
+                                float left = Math.min(this.startX, x);
+                                float right = Math.max(this.startX, x);
+                                float top = Math.min(this.startY, y);
+                                float bottom = Math.max(this.startY, y);
+
+                                path.addRect(left, top, right, bottom, Path.Direction.CCW);
+                                break;
+                            case CIRCLE:
+                                double distanceX = Math.abs((double) (this.startX - x));
+                                double distanceY = Math.abs((double) (this.startX - y));
+                                double radius = Math.sqrt(Math.pow(distanceX, 2.0) + Math.pow(distanceY, 2.0));
+
+                                path.reset();
+                                path.addCircle(this.startX, this.startY, (float) radius, Path.Direction.CCW);
+                                break;
+                            case ELLIPSE:
+                                RectF rect = new RectF(this.startX, this.startY, x, y);
+
+                                path.reset();
+                                path.addOval(rect, Path.Direction.CCW);
+                                break;
+                            default:
+                                break;
+                        }
+                    } else {
+                        if (!isDown) {
+                            return;
+                        }
+
+                        Path path = this.getCurrentPath();
+
+                        path.reset();
+                        path.moveTo(this.startX, this.startY);
+                        path.quadTo(this.controlX, this.controlY, x, y);
                     }
 
-                    Path path = this.getCurrentPath();
+                    break;
+                case TEXT:
+                    this.startX = x;
+                    this.startY = y;
 
-                    switch (this.drawer) {
-                        case PEN :
-                            path.lineTo(x, y);
-                            break;
-                        case LINE :
-                            path.reset();
-                            path.moveTo(this.startX, this.startY);
-                            path.lineTo(x, y);
-                            break;
-                        case RECTANGLE :
-                            path.reset();
+                    break;
+                default:
+                    break;
+            }
+        }
+        else
+        {
 
-                            float left   = Math.min(this.startX, x);
-                            float right  = Math.max(this.startX, x);
-                            float top    = Math.min(this.startY, y);
-                            float bottom = Math.max(this.startY, y);
-
-                            path.addRect(left, top, right, bottom, Path.Direction.CCW);
-                            break;
-                        case CIRCLE :
-                            double distanceX = Math.abs((double)(this.startX - x));
-                            double distanceY = Math.abs((double)(this.startX - y));
-                            double radius    = Math.sqrt(Math.pow(distanceX, 2.0) + Math.pow(distanceY, 2.0));
-
-                            path.reset();
-                            path.addCircle(this.startX, this.startY, (float)radius, Path.Direction.CCW);
-                            break;
-                        case ELLIPSE :
-                            RectF rect = new RectF(this.startX, this.startY, x, y);
-
-                            path.reset();
-                            path.addOval(rect, Path.Direction.CCW);
-                            break;
-                        default :
-                            break;
-                    }
-                } else {
-                    if (!isDown) {
-                        return;
-                    }
-
-                    Path path = this.getCurrentPath();
-
-                    path.reset();
-                    path.moveTo(this.startX, this.startY);
-                    path.quadTo(this.controlX, this.controlY, x, y);
-                }
-
-                break;
-            case TEXT :
-                this.startX = x;
-                this.startY = y;
-
-                break;
-            default :
-                break;
         }
     }
 
@@ -911,6 +949,13 @@ public class CanvasView extends View {
      */
     public byte[] getBitmapAsByteArray() {
         return this.getBitmapAsByteArray(CompressFormat.PNG, 100);
+    }
+    public void setAvailability(boolean flag, MotionEvent event)
+    {
+        isAvailable = flag;
+        if(flag) {
+            this.onCustomActionDown(event);
+        }
     }
 
 }

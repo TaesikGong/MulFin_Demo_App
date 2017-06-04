@@ -33,7 +33,8 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     public static final int LITTLE = 4;
 
 
-    public static final double SOFTMAX_THRESH = 0.9;
+    public static final double SOFTMAX_THRESH = 0;
+    public static final int OUTPUT_DIM = 3;
 
     CanvasView _canvas = null;
     TextView _tvFinger = null;
@@ -80,15 +81,15 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
             w1 = new double[8][50];
             w2 = new double[50][30];
-            w3 = new double[30][5];
+            w3 = new double[30][OUTPUT_DIM];
 
             w1T = new double[50][8];
             w2T = new double[30][50];
-            w3T = new double[5][30];
+            w3T = new double[OUTPUT_DIM][30];
 
             b1 = new double[50][1];
             b2 = new double[30][1];
-            b3 = new double[5][1];
+            b3 = new double[OUTPUT_DIM][1];
 
             for(int i=0;i<files.length;i++) {
                 weightFiles[i] = new BufferedReader(new InputStreamReader(new FileInputStream(new File(dir + files[i]))));
@@ -186,11 +187,12 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         pusher.postDelayed(new Runnable(){
             public void run(){
 
-//                Log.i("FTEL", "T:"+ TPress +" "+ TSize +
+
+                if(logOn) {
+//                    Log.i("FTEL", "T:"+ TSize +" "+ TPress +
 //                        "A: "+ AccX +" "+ AccY +" "+ AccZ +
 //                        "G: "+ GyroX +" "+ GyroY +" "+ GyroZ);
-                if(logOn) {
-                    double[] input = {TPress, TSize, AccX, AccY, AccZ, GyroX, GyroY, GyroZ};
+                    double[] input = {TSize, TPress, AccX, AccY, AccZ, GyroX, GyroY, GyroZ};
 //                    double[] input =
 //                            {4.285714600000000152e-01,9.000000400000000012e-01,1.199999999999999956e-01,1.100000000000000006e-01,1.900000000000000022e-01,1.033306499999999961e-01,4.687163600000000124e-02,8.948222000000000120e-02};
 //                            {4.285714600000000152e-01,9.000000400000000012e-01,5.999999999999999778e-02,1.300000000000000044e-01,3.200000000000000067e-01,1.033306499999999961e-01,4.687163600000000124e-02,8.948222000000000120e-02};
@@ -224,7 +226,10 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                     _setter.setHighlighter();
                     break;
                 case MIDDLE:
-                    _setter.setHighlighter2();
+                    if(OUTPUT_DIM ==3)
+                        _setter.setEraser();
+                    else
+                        _setter.setHighlighter2();
                     break;
                 case RING:
                     _setter.setHighlighter3();
@@ -233,6 +238,8 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                     _setter.setEraser();
                     break;
             }
+
+            _canvas.setAvailability(true, event);
         }
 
         // get masked (not specific to a pointer) action
@@ -250,6 +257,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
                 logOn = false;
                 _holder.clear();
+                _canvas.setAvailability(false, event);
 
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -285,9 +293,9 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
         X1 = new double[50][_holder.getData().size()];
         X2 = new double[30][_holder.getData().size()];
-        X3 = new double[5][_holder.getData().size()];
-        Y = new double[5][_holder.getData().size()];
-        YT = new double[_holder.getData().size()][5];
+        X3 = new double[OUTPUT_DIM][_holder.getData().size()];
+        Y = new double[OUTPUT_DIM][_holder.getData().size()];
+        YT = new double[_holder.getData().size()][OUTPUT_DIM];
 
         //get X1
         for(int i=0;i<w1T.length;i++)
@@ -377,9 +385,9 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
 
         int seed = -1;
-        for(int i=0;i<5;i++)
+        int max=0;
+        for(int i=0;i<OUTPUT_DIM;i++)
         {
-            int max=0;
             if(vote[i] > max)
             {
                 max = vote[i];
@@ -398,7 +406,10 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 _tvFinger.setText("Index");
                 return INDEX;
             case 2:
-                _tvFinger.setText("Middle");
+                if(OUTPUT_DIM == 3)
+                    _tvFinger.setText("Little");
+                else
+                    _tvFinger.setText("Middle");
                 return MIDDLE;
             case 3:
                 _tvFinger.setText("Ring");
