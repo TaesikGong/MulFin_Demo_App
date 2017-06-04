@@ -146,18 +146,19 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
             Log.i("FTEL", "Available");
             switch (fingerClassifier()) {
                 case THUMB:
+                    _setter.setPen();
                     break;
                 case INDEX:
-//                    _setter.setHighlighter();
+                    _setter.setHighlighter();
                     break;
                 case MIDDLE:
-//                    _setter.setHighlighter2();
+                    _setter.setHighlighter2();
                     break;
                 case RING:
-//                    _setter.setHighlighter3();
+                    _setter.setHighlighter3();
                     break;
                 case LITTLE:
-//                    _setter.setEraser();
+                    _setter.setEraser();
                     break;
             }
         }
@@ -171,7 +172,6 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
         switch (maskedAction) {
             case MotionEvent.ACTION_DOWN:
-                _setter.setPen();
             case MotionEvent.ACTION_POINTER_DOWN:
             case MotionEvent.ACTION_MOVE:
                 logOn = true;
@@ -186,7 +186,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 break;
         }
 
-        return true;
+        return false;
     }
 
     @Override
