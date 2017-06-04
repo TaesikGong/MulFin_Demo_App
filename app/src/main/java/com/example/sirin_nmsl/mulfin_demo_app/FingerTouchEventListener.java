@@ -49,8 +49,8 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     private float AccX, AccY, AccZ;
     private float GyroX, GyroY, GyroZ;
     BufferedReader []weights;
-    String[] files = {"0_dense_1_W.txt", "0_dense_1_b.txt", "0_dense_2_W.txt", "0_dense_2_b.txt",
-             "1_dense_2_W.txt", "1_dense_2_b.txt", "1_dense_3_W.txt", "1_dense_3_b.txt",
+    String[] files = {"0_dense_1_W.txt", "0_dense_1_b.txt",
+             "1_dense_2_W.txt", "1_dense_2_b.txt",
              "2_dense_3_W.txt", "2_dense_3_b.txt"};
 
     private boolean logOn = false;
@@ -142,6 +142,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
         TPress = event.getPressure();
         TSize = event.getSize();
+        Log.i("FTEL",TPress + " " + TSize);
 
         if(_holder.isAvailable() && isCalcNeeded) {
             isCalcNeeded = false;
