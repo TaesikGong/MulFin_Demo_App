@@ -32,7 +32,6 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     public static final int RING = 3;
     public static final int LITTLE = 4;
 
-
     public static final double SOFTMAX_THRESH = 0;
     public static final int OUTPUT_DIM = 3;
 
@@ -248,6 +247,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         switch (maskedAction) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
+                _tvFinger.setText("...");
                 isCalcNeeded = true;
                 logOn = true;
                 break;
@@ -285,6 +285,8 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
     public int fingerClassifier() {
 
+        long startTime = System.currentTimeMillis();
+
         double [][]X1,X2,X3;
         double[][]Y;
         double[][]YT;
@@ -297,7 +299,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         Y = new double[OUTPUT_DIM][_holder.getData().size()];
         YT = new double[_holder.getData().size()][OUTPUT_DIM];
 
-        //get X1
+        //get X1, second bottleneck
         for(int i=0;i<w1T.length;i++)
         {
             for(int j=0;j<data[0].length;j++)
@@ -309,7 +311,8 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 X1[i][j] += b1[i][0];
             }
         }
-        //get X2
+
+        //get X2, first bottleneck
         for(int i=0;i<w2T.length;i++)
         {
             for(int j=0;j<X1[0].length;j++)
@@ -321,6 +324,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 X2[i][j] += b2[i][0];
             }
         }
+
 
         //get X3
         for(int i=0;i<w3T.length;i++)
@@ -334,6 +338,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 X3[i][j] += b3[i][0];
             }
         }
+
 
         //softmax
         //https://stackoverflow.com/questions/16441769/javas-bigdecimal-powerbigdecimal-exponent-is-there-a-java-library-that-does
@@ -352,6 +357,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         }
 
 
+
         for(int i=0;i<Y.length;i++)
         {
             for (int j=0;j<Y[0].length;j++)
@@ -359,6 +365,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 YT[j][i] = Y[i][j];
             }
         }
+
 
         //YT = # x 5 matrix
 
@@ -383,7 +390,6 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         }
 
 
-
         int seed = -1;
         int max=0;
         for(int i=0;i<OUTPUT_DIM;i++)
@@ -396,7 +402,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         }
 
         Log.i("FT","seed:"+seed+", vote:"+vote[0]+" "+vote[1]+" "+vote[2]+" "+vote[3]+" "+vote[4]);
-
+        Log.i("FT","Processing time: "+(System.currentTimeMillis()-startTime));
 
         switch (seed) {
             case 0:

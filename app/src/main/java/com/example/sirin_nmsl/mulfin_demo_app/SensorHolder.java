@@ -24,7 +24,7 @@ public class SensorHolder{
     List<List<Double>> data;
 
     final int NUM_FEATURE = 8;
-    final int NUM_DATA = 200;
+    final int NUM_DATA = 500;
 
     //100x8
 
