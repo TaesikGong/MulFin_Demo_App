@@ -406,22 +406,22 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
         switch (seed) {
             case 0:
-                _tvFinger.setText("Thumb");
+                _tvFinger.setText("1:Thumb");
                 return THUMB;
             case 1:
-                _tvFinger.setText("Index");
+                _tvFinger.setText("2:Index");
                 return INDEX;
             case 2:
                 if(OUTPUT_DIM == 3)
-                    _tvFinger.setText("Little");
+                    _tvFinger.setText("5:Little");
                 else
-                    _tvFinger.setText("Middle");
+                    _tvFinger.setText("3:Middle");
                 return MIDDLE;
             case 3:
-                _tvFinger.setText("Ring");
+                _tvFinger.setText("4:Ring");
                 return RING;
             case 4:
-                _tvFinger.setText("Little");
+                _tvFinger.setText("5:Little");
                 return LITTLE;
 
         }
