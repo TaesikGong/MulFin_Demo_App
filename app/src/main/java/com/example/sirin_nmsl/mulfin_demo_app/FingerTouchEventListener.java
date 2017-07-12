@@ -20,6 +20,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 
+import weka.classifiers.Classifier;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.List;
+
+import weka.core.Attribute;
+import weka.core.DenseInstance;
+import weka.core.FastVector;
+import weka.core.Instances;
 /**
  * Created by SIRIN-NMSL on 2017-05-31.
  */
@@ -33,7 +45,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     public static final int LITTLE = 4;
 
     public static final double SOFTMAX_THRESH = 0;
-    public static final int OUTPUT_DIM = 3;
+    public static final int OUTPUT_DIM = 5;
 
     CanvasView _canvas = null;
     TextView _tvFinger = null;
@@ -63,8 +75,22 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     private boolean logOn = false;
     private boolean isCalcNeeded = false;
 
+    Classifier _cf = null;
+
     FingerTouchEventListener(Application app, CanvasView canvas, TextView tvFinger) {
 
+
+
+        try {
+            _cf = (Classifier) weka.core.SerializationHelper.read(
+                    Environment.getExternalStorageDirectory() +
+                            "/MulFin_Weights/REPTree_5f.model");;
+
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
 
         //Loading weight files
         try {
@@ -209,7 +235,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     public boolean onTouch(View v, MotionEvent event) {
 
 
-
+        //wekaFingerClassifier();
         TPress = event.getPressure();
         TSize = event.getSize();
 //        Log.i("FTEL",TPress + " " + TSize);
@@ -217,7 +243,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         if(_holder.isAvailable() && isCalcNeeded) {
             isCalcNeeded = false;
             Log.i("FTEL", "Available");
-            switch (fingerClassifier()) {
+            switch (wekaFingerClassifier()) {
                 case THUMB:
                     _setter.setPen();
                     break;
@@ -283,13 +309,124 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     }
 
 
+    public int wekaFingerClassifier() {
+        long startTime = System.currentTimeMillis();
+        //https://stackoverflow.com/questions/12118132/adding-a-new-instance-in-weka
+        ArrayList<Attribute> atts = new ArrayList<Attribute>(8);
+
+        FastVector fvClass = new FastVector(3);
+        fvClass.addElement("f1");
+        fvClass.addElement("f2");
+        fvClass.addElement("f3");
+        fvClass.addElement("f4");
+        fvClass.addElement("f5");
+
+        atts.add(new Attribute("Type", fvClass));
+        atts.add(new Attribute("Area"));
+        atts.add(new Attribute("Pressure"));
+        atts.add(new Attribute("AccX"));
+        atts.add(new Attribute("AccY"));
+        atts.add(new Attribute("AccZ"));
+        atts.add(new Attribute("GyroX"));
+        atts.add(new Attribute("GyroY"));
+        atts.add(new Attribute("GyroZ"));
+
+        Instances dataRaw = new Instances("TestInstances",atts,0);
+
+        dataRaw.setClassIndex(0);
+
+
+        double [][] data = _holder.getArrayedData();
+        for(int i=0;i<data.length;i++)
+        {
+            double[] instanceValue = new double[dataRaw.numAttributes()];
+            instanceValue[0] = 0;
+            instanceValue[1] = data[i][0];
+            instanceValue[2] = data[i][1];
+            instanceValue[3] = data[i][2];
+            instanceValue[4] = data[i][3];
+            instanceValue[5] = data[i][4];
+            instanceValue[6] = data[i][5];
+            instanceValue[7] = data[i][6];
+            instanceValue[8] = data[i][7];
+            dataRaw.add(new DenseInstance(8, instanceValue));
+        }
+
+
+        //System.out.println(dataRaw);
+        Log.i("FT","Processing time add: "+(System.currentTimeMillis()-startTime));
+
+        //original:https://weka.wikispaces.com/Use+WEKA+in+your+Java+code#Classification-Classifying instances
+
+        int []vote = {0,0,0,0,0};
+
+        // label instances
+        try {
+            for (int i = 0; i < dataRaw.numInstances(); i++) {
+                double clsLabel = _cf.classifyInstance(dataRaw.instance(i));
+//                Log.i("FTEL","detected:"+clsLabel);
+                vote[(int)clsLabel]++;
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        // save labeled data
+        Log.i("FTEL", vote[0]+", "+vote[1]+", "+vote[2]+", "+vote[3]+", "+vote[4]);
+        Log.i("FT","Processing time for voting  + classifying: "+(System.currentTimeMillis()-startTime));
+
+
+
+
+        int seed = -1;
+        int max=0;
+        for(int i=0;i<OUTPUT_DIM;i++)
+        {
+            if(vote[i] > max)
+            {
+                max = vote[i];
+                seed = i;
+            }
+        }
+
+        Log.i("FT","seed:"+seed+", vote:"+vote[0]+" "+vote[1]+" "+vote[2]+" "+vote[3]+" "+vote[4]);
+        Log.i("FT","Processing time: "+(System.currentTimeMillis()-startTime));
+
+        switch (seed) {
+            case 0:
+                _tvFinger.setText("1:Thumb");
+                return THUMB;
+            case 1:
+                _tvFinger.setText("2:Index");
+                return INDEX;
+            case 2:
+                if(OUTPUT_DIM == 3)
+                    _tvFinger.setText("5:Little");
+                else
+                    _tvFinger.setText("3:Middle");
+                return MIDDLE;
+            case 3:
+                _tvFinger.setText("4:Ring");
+                return RING;
+            case 4:
+                _tvFinger.setText("5:Little");
+                return LITTLE;
+
+        }
+        return 0;
+    }
+
+
+
     public int fingerClassifier() {
+
 
         long startTime = System.currentTimeMillis();
 
         double [][]X1,X2,X3;
-        double[][]Y;
-        double[][]YT;
+        double [][]Y;
+        double [][]YT;
 
         double[][] data = _holder.getTransposedData();
 

@@ -54,6 +54,19 @@ public class SensorHolder{
     {
         return data;
     }
+    double[][] getArrayedData()
+    {
+        double [][]arrayedData = new double[NUM_DATA][NUM_FEATURE];//8x100
+
+        for(int i=0;i<data.size();i++)
+        {
+            for(int j=0;j<data.get(0).size();j++)
+            {
+                arrayedData[i][j] = data.get(i).get(j);
+            }
+        }
+        return arrayedData;
+    }
     double[][] getTransposedData()
     {
         double [][]transposedData = new double[NUM_FEATURE][NUM_DATA];//8x100
