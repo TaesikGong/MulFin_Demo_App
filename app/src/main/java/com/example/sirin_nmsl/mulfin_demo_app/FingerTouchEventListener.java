@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 
 import weka.classifiers.Classifier;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
@@ -32,6 +33,7 @@ import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.FastVector;
 import weka.core.Instances;
+
 /**
  * Created by SIRIN-NMSL on 2017-05-31.
  */
@@ -62,33 +64,40 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     private double recent_getY;
     private double AccX, AccY, AccZ;
     private double GyroX, GyroY, GyroZ;
-    BufferedReader [] weightFiles;
+    BufferedReader[] weightFiles;
 
-    double [][] w1,w2,w3;
-    double [][] w1T,w2T,w3T;
-    double [][] b1,b2,b3;
+    double[][] w1, w2, w3;
+    double[][] w1T, w2T, w3T;
+    double[][] b1, b2, b3;
 
     String[] files = {"0_dense_1_W.txt", "0_dense_1_b.txt",
-             "1_dense_2_W.txt", "1_dense_2_b.txt",
-             "2_dense_3_W.txt", "2_dense_3_b.txt"};
+            "1_dense_2_W.txt", "1_dense_2_b.txt",
+            "2_dense_3_W.txt", "2_dense_3_b.txt"};
 
     private boolean logOn = false;
     private boolean isCalcNeeded = false;
 
     Classifier _cf = null;
+    long lastTouchTime = 0;
+    long threshMillis = 200;
+    boolean isCalcDone = false;
+    SensorHandler _sh = new SensorHandler();
 
     FingerTouchEventListener(Application app, CanvasView canvas, TextView tvFinger) {
 
-
-
         try {
+//            String model="J48_5fin_ts.model";
+//            String model="J48_2finlittle_ts.model";
+//            String model="J48_2finlittle_cv10_ts.model";
+            String model="J48_3fin_cv10_ts.model";
+
+//            String model="J48_3fin_ts.model";
+
             _cf = (Classifier) weka.core.SerializationHelper.read(
                     Environment.getExternalStorageDirectory() +
-                            "/MulFin_Weights/REPTree_5f.model");;
+                            "/MulFin_Weights/"+model);
 
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -101,7 +110,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
             weightFiles = new BufferedReader[files.length];
 
-            String dir =  folder.toString()+ File.separator;
+            String dir = folder.toString() + File.separator;
 
 
             w1 = new double[8][50];
@@ -116,7 +125,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
             b2 = new double[30][1];
             b3 = new double[OUTPUT_DIM][1];
 
-            for(int i=0;i<files.length;i++) {
+            for (int i = 0; i < files.length; i++) {
                 weightFiles[i] = new BufferedReader(new InputStreamReader(new FileInputStream(new File(dir + files[i]))));
 
                 double x;
@@ -124,8 +133,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 String[] numbers;
 
                 // read line by line till end of file
-                for (int l =0;(line = weightFiles[i].readLine()) != null;l++)
-                {
+                for (int l = 0; (line = weightFiles[i].readLine()) != null; l++) {
                     // split each line based on regular expression having
                     // "any digit followed by one or more spaces".
                     numbers = line.split("\\s+");
@@ -135,60 +143,51 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                         x = Double.valueOf(numbers[val].trim());
 
 //                        Log.i("LOOP","i:"+i+" l:"+l+" val:"+val +" x:" + x);
-                        switch (i){
+                        switch (i) {
                             case 0:
-                                w1[l][val] = x; break;
+                                w1[l][val] = x;
+                                break;
                             case 1:
-                                b1[l][val] = x; break;
+                                b1[l][val] = x;
+                                break;
                             case 2:
-                                w2[l][val] = x; break;
+                                w2[l][val] = x;
+                                break;
                             case 3:
-                                b2[l][val] = x; break;
+                                b2[l][val] = x;
+                                break;
                             case 4:
-                                w3[l][val] = x; break;
+                                w3[l][val] = x;
+                                break;
                             case 5:
-                                b3[l][val] = x; break;
+                                b3[l][val] = x;
+                                break;
                         }
 
                     }
                 }
             }
 
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         //get transpose
-        for(int i=0;i<w1.length;i++)
-        {
-            for (int j=0;j<w1[0].length;j++)
-            {
+        for (int i = 0; i < w1.length; i++) {
+            for (int j = 0; j < w1[0].length; j++) {
                 w1T[j][i] = w1[i][j];
             }
         }
-        for(int i=0;i<w2.length;i++)
-        {
-            for (int j=0;j<w2[0].length;j++)
-            {
+        for (int i = 0; i < w2.length; i++) {
+            for (int j = 0; j < w2[0].length; j++) {
                 w2T[j][i] = w2[i][j];
             }
         }
-        for(int i=0;i<w3.length;i++)
-        {
-            for (int j=0;j<w3[0].length;j++)
-            {
+        for (int i = 0; i < w3.length; i++) {
+            for (int j = 0; j < w3[0].length; j++) {
                 w3T[j][i] = w3[i][j];
             }
         }
-
-
-
-
-
-
-
 
         //init variables
         _canvas = canvas;
@@ -209,20 +208,35 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         final Handler pusher = new Handler();
         final int delay = 1; //milliseconds
 
-        pusher.postDelayed(new Runnable(){
-            public void run(){
+        pusher.postDelayed(new Runnable() {
+            public void run() {
 
 
-                if(logOn) {
-//                    Log.i("FTEL", "T:"+ TSize +" "+ TPress +
-//                        "A: "+ AccX +" "+ AccY +" "+ AccZ +
-//                        "G: "+ GyroX +" "+ GyroY +" "+ GyroZ);
-                    double[] input = {TSize, TPress, AccX, AccY, AccZ, GyroX, GyroY, GyroZ};
-//                    double[] input =
-//                            {4.285714600000000152e-01,9.000000400000000012e-01,1.199999999999999956e-01,1.100000000000000006e-01,1.900000000000000022e-01,1.033306499999999961e-01,4.687163600000000124e-02,8.948222000000000120e-02};
-//                            {4.285714600000000152e-01,9.000000400000000012e-01,5.999999999999999778e-02,1.300000000000000044e-01,3.200000000000000067e-01,1.033306499999999961e-01,4.687163600000000124e-02,8.948222000000000120e-02};
+                if (logOn) {
+//                    double[] input = {TSize, TPress, AccX, AccY, AccZ, GyroX, GyroY, GyroZ};
+//                    _holder.pushRow(input);
+                    String[] input = {
+                            String.valueOf(System.currentTimeMillis()),
+                            "-1",//no finger label
+                            String.valueOf(TSize),
+                            String.valueOf(TPress),
+                            String.valueOf(AccX),
+                            String.valueOf(AccY),
+                            String.valueOf(AccZ),
+                            String.valueOf(GyroX),
+                            String.valueOf(GyroY),
+                            String.valueOf(GyroZ)
+                    };
+                    _sh.pushRow(input);
+                    if (System.currentTimeMillis() - lastTouchTime > threshMillis
+                            && !isCalcDone) {
+                        Log.i("FTEL", "200ms passed");
+                        isCalcDone = true;
+                        wekaFingerClassifier();
+                        _sh.data.clear();
 
-                    _holder.pushRow(input);
+
+                    }
                 }
 
                 pusher.postDelayed(this, delay);
@@ -234,48 +248,49 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     @Override
     public boolean onTouch(View v, MotionEvent event) {
 
-
-        //wekaFingerClassifier();
         TPress = event.getPressure();
         TSize = event.getSize();
-//        Log.i("FTEL",TPress + " " + TSize);
 
-        if(_holder.isAvailable() && isCalcNeeded) {
-            isCalcNeeded = false;
-            Log.i("FTEL", "Available");
-            switch (wekaFingerClassifier()) {
-                case THUMB:
-                    _setter.setPen();
-                    break;
-                case INDEX:
-                    _setter.setHighlighter();
-                    break;
-                case MIDDLE:
-                    if(OUTPUT_DIM ==3)
-                        _setter.setEraser();
-                    else
-                        _setter.setHighlighter2();
-                    break;
-                case RING:
-                    _setter.setHighlighter3();
-                    break;
-                case LITTLE:
-                    _setter.setEraser();
-                    break;
-            }
-
-            _canvas.setAvailability(true, event);
-        }
+//        if (_holder.isAvailable() && isCalcNeeded) {
+//            isCalcNeeded = false;
+//            Log.i("FTEL", "Available");
+//            switch (wekaFingerClassifier()) {
+//                case THUMB:
+//                    _setter.setPen();
+//                    break;
+//                case INDEX:
+//                    _setter.setHighlighter();
+//                    break;
+//                case MIDDLE:
+//                    if (OUTPUT_DIM == 3)
+//                        _setter.setEraser();
+//                    else
+//                        _setter.setHighlighter2();
+//                    break;
+//                case RING:
+//                    _setter.setHighlighter3();
+//                    break;
+//                case LITTLE:
+//                    _setter.setEraser();
+//                    break;
+//            }
+//            _canvas.setAvailability(true, event);
+//        }
 
         // get masked (not specific to a pointer) action
         int maskedAction = event.getActionMasked();
 
         switch (maskedAction) {
             case MotionEvent.ACTION_DOWN:
+
             case MotionEvent.ACTION_POINTER_DOWN:
                 _tvFinger.setText("...");
                 isCalcNeeded = true;
                 logOn = true;
+
+                lastTouchTime = System.currentTimeMillis();
+                isCalcDone = false;
+                Log.i("FTEL", "Logon start");
                 break;
 
             case MotionEvent.ACTION_UP:
@@ -310,123 +325,112 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
 
     public int wekaFingerClassifier() {
-        long startTime = System.currentTimeMillis();
-        //https://stackoverflow.com/questions/12118132/adding-a-new-instance-in-weka
-        ArrayList<Attribute> atts = new ArrayList<Attribute>(8);
 
-        FastVector fvClass = new FastVector(3);
-        fvClass.addElement("f1");
-        fvClass.addElement("f2");
-        fvClass.addElement("f3");
-        fvClass.addElement("f4");
-        fvClass.addElement("f5");
+        long startTime = System.currentTimeMillis();
+
+        List<String> list = _sh.getProcessedData();
+
+        //https://stackoverflow.com/questions/12118132/adding-a-new-instance-in-weka
+        ArrayList<Attribute> atts = new ArrayList<>(_sh.features.length-1);
+
+//        String []fingers={"f1","f2","f3","f4","f5"};
+        String []fingers={"f1","f2","f5"};
+//        String []fingers={"f1","f5"};
+
+        FastVector fvClass = new FastVector(fingers.length);
+        for(String s:fingers)
+            fvClass.addElement(s);
 
         atts.add(new Attribute("Type", fvClass));
-        atts.add(new Attribute("Area"));
-        atts.add(new Attribute("Pressure"));
-        atts.add(new Attribute("AccX"));
-        atts.add(new Attribute("AccY"));
-        atts.add(new Attribute("AccZ"));
-        atts.add(new Attribute("GyroX"));
-        atts.add(new Attribute("GyroY"));
-        atts.add(new Attribute("GyroZ"));
 
-        Instances dataRaw = new Instances("TestInstances",atts,0);
-
-        dataRaw.setClassIndex(0);
+        for(int i=2; i<_sh.features.length;i++)
+            atts.add(new Attribute(_sh.features[i]));
 
 
-        double [][] data = _holder.getArrayedData();
-        for(int i=0;i<data.length;i++)
+        Instances dataRaw = new Instances("TestInstances", atts, 0);
+        dataRaw.setClassIndex(0);//set class index
+
+        double[] instanceValue = new double[_sh.features.length-1];
+        for(int i=0;i<list.size()-1;i++)
         {
-            double[] instanceValue = new double[dataRaw.numAttributes()];
-            instanceValue[0] = 0;
-            instanceValue[1] = data[i][0];
-            instanceValue[2] = data[i][1];
-            instanceValue[3] = data[i][2];
-            instanceValue[4] = data[i][3];
-            instanceValue[5] = data[i][4];
-            instanceValue[6] = data[i][5];
-            instanceValue[7] = data[i][6];
-            instanceValue[8] = data[i][7];
-            dataRaw.add(new DenseInstance(8, instanceValue));
+            instanceValue[i] = Double.parseDouble(list.get(i+1));
         }
-
+        dataRaw.add(new DenseInstance(_sh.features.length-1, instanceValue));
 
         //System.out.println(dataRaw);
-        Log.i("FT","Processing time add: "+(System.currentTimeMillis()-startTime));
+        Log.i("FT", "Processing time add: " + (System.currentTimeMillis() - startTime));
 
         //original:https://weka.wikispaces.com/Use+WEKA+in+your+Java+code#Classification-Classifying instances
-
-        int []vote = {0,0,0,0,0};
+        int classified = 0;
 
         // label instances
         try {
-            for (int i = 0; i < dataRaw.numInstances(); i++) {
-                double clsLabel = _cf.classifyInstance(dataRaw.instance(i));
-//                Log.i("FTEL","detected:"+clsLabel);
-                vote[(int)clsLabel]++;
-            }
-        }
-        catch (Exception e)
-        {
+            classified = (int)_cf.classifyInstance(dataRaw.instance(0));
+        } catch (Exception e) {
             e.printStackTrace();
         }
         // save labeled data
-        Log.i("FTEL", vote[0]+", "+vote[1]+", "+vote[2]+", "+vote[3]+", "+vote[4]);
-        Log.i("FT","Processing time for voting  + classifying: "+(System.currentTimeMillis()-startTime));
 
+        Log.i("FT", "Processing time for voting  + classifying: " + (System.currentTimeMillis() - startTime));
+        Log.i("FT", "Processing time: " + (System.currentTimeMillis() - startTime));
 
-
-
-        int seed = -1;
-        int max=0;
-        for(int i=0;i<OUTPUT_DIM;i++)
-        {
-            if(vote[i] > max)
-            {
-                max = vote[i];
-                seed = i;
-            }
-        }
-
-        Log.i("FT","seed:"+seed+", vote:"+vote[0]+" "+vote[1]+" "+vote[2]+" "+vote[3]+" "+vote[4]);
-        Log.i("FT","Processing time: "+(System.currentTimeMillis()-startTime));
-
-        switch (seed) {
-            case 0:
-                _tvFinger.setText("1:Thumb");
-                return THUMB;
-            case 1:
-                _tvFinger.setText("2:Index");
-                return INDEX;
-            case 2:
-                if(OUTPUT_DIM == 3)
-                    _tvFinger.setText("5:Little");
-                else
-                    _tvFinger.setText("3:Middle");
-                return MIDDLE;
+        switch(fingers.length){
+            case 5:
+                switch (classified) {
+                    case 0:
+                        _tvFinger.setText("1:Thumb");
+                        return THUMB;
+                    case 1:
+                        _tvFinger.setText("2:Index");
+                        return INDEX;
+                    case 2:
+                        _tvFinger.setText("3:Middle");
+                        return MIDDLE;
+                    case 3:
+                        _tvFinger.setText("4:Ring");
+                        return RING;
+                    case 4:
+                        _tvFinger.setText("5:Little");
+                        return LITTLE;
+                }
+                break;
             case 3:
-                _tvFinger.setText("4:Ring");
-                return RING;
-            case 4:
-                _tvFinger.setText("5:Little");
-                return LITTLE;
+                switch (classified) {
+                    case 0:
+                        _tvFinger.setText("1:Thumb");
+                        return THUMB;
+                    case 1:
+                        _tvFinger.setText("2:Index");
+                        return INDEX;
+                    case 2:
+                        _tvFinger.setText("5:Little");
+                        return LITTLE;
+                }
+                break;
+            case 2:
+                switch (classified) {
+                    case 0:
+                        _tvFinger.setText("1:Thumb");
+                        return THUMB;
+                    case 1:
+                        _tvFinger.setText("5:Little");
+                        return LITTLE;
+                }
+                break;
 
         }
         return 0;
     }
 
 
-
-    public int fingerClassifier() {
+    public int fingerNNClassifier() {
 
 
         long startTime = System.currentTimeMillis();
 
-        double [][]X1,X2,X3;
-        double [][]Y;
-        double [][]YT;
+        double[][] X1, X2, X3;
+        double[][] Y;
+        double[][] YT;
 
         double[][] data = _holder.getTransposedData();
 
@@ -437,12 +441,9 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         YT = new double[_holder.getData().size()][OUTPUT_DIM];
 
         //get X1, second bottleneck
-        for(int i=0;i<w1T.length;i++)
-        {
-            for(int j=0;j<data[0].length;j++)
-            {
-                for(int k=0;k<w1T[0].length;k++)
-                {
+        for (int i = 0; i < w1T.length; i++) {
+            for (int j = 0; j < data[0].length; j++) {
+                for (int k = 0; k < w1T[0].length; k++) {
                     X1[i][j] += w1T[i][k] * data[k][j];
                 }
                 X1[i][j] += b1[i][0];
@@ -450,12 +451,9 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         }
 
         //get X2, first bottleneck
-        for(int i=0;i<w2T.length;i++)
-        {
-            for(int j=0;j<X1[0].length;j++)
-            {
-                for(int k=0;k<w2T[0].length;k++)
-                {
+        for (int i = 0; i < w2T.length; i++) {
+            for (int j = 0; j < X1[0].length; j++) {
+                for (int k = 0; k < w2T[0].length; k++) {
                     X2[i][j] += w2T[i][k] * X1[k][j];
                 }
                 X2[i][j] += b2[i][0];
@@ -464,12 +462,9 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
 
         //get X3
-        for(int i=0;i<w3T.length;i++)
-        {
-            for(int j=0;j<X2[0].length;j++)
-            {
-                for(int k=0;k<w3T[0].length;k++)
-                {
+        for (int i = 0; i < w3T.length; i++) {
+            for (int j = 0; j < X2[0].length; j++) {
+                for (int k = 0; k < w3T[0].length; k++) {
                     X3[i][j] += w3T[i][k] * X2[k][j];
                 }
                 X3[i][j] += b3[i][0];
@@ -479,26 +474,20 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
         //softmax
         //https://stackoverflow.com/questions/16441769/javas-bigdecimal-powerbigdecimal-exponent-is-there-a-java-library-that-does
-        for(int j=0;j<X3[0].length;j++)
-        {
+        for (int j = 0; j < X3[0].length; j++) {
             double sum = 0;
-            for(int i=0;i<X3.length;i++)
-            {
+            for (int i = 0; i < X3.length; i++) {
                 sum += Math.exp(X3[i][j]);
             }
 
-            for(int i=0;i<X3.length;i++)
-            {
-                Y[i][j] = Math.exp(X3[i][j])/sum;
+            for (int i = 0; i < X3.length; i++) {
+                Y[i][j] = Math.exp(X3[i][j]) / sum;
             }
         }
 
 
-
-        for(int i=0;i<Y.length;i++)
-        {
-            for (int j=0;j<Y[0].length;j++)
-            {
+        for (int i = 0; i < Y.length; i++) {
+            for (int j = 0; j < Y[0].length; j++) {
                 YT[j][i] = Y[i][j];
             }
         }
@@ -506,40 +495,34 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
         //YT = # x 5 matrix
 
-        int []vote = {0,0,0,0,0};
+        int[] vote = {0, 0, 0, 0, 0};
 
-        for(int i=0;i<YT.length;i++)
-        {
+        for (int i = 0; i < YT.length; i++) {
             double maxSoft = 0;
             int maxIdx = -1;
-            for(int j=0;j<YT[0].length;j++)
-            {
-                if(maxSoft < YT[i][j])
-                {
+            for (int j = 0; j < YT[0].length; j++) {
+                if (maxSoft < YT[i][j]) {
                     maxIdx = j;
                     maxSoft = YT[i][j];
                 }
             }
-            if(maxSoft >= SOFTMAX_THRESH)
-            {
-                vote[maxIdx]+=1;
+            if (maxSoft >= SOFTMAX_THRESH) {
+                vote[maxIdx] += 1;
             }
         }
 
 
         int seed = -1;
-        int max=0;
-        for(int i=0;i<OUTPUT_DIM;i++)
-        {
-            if(vote[i] > max)
-            {
+        int max = 0;
+        for (int i = 0; i < OUTPUT_DIM; i++) {
+            if (vote[i] > max) {
                 max = vote[i];
                 seed = i;
             }
         }
 
-        Log.i("FT","seed:"+seed+", vote:"+vote[0]+" "+vote[1]+" "+vote[2]+" "+vote[3]+" "+vote[4]);
-        Log.i("FT","Processing time: "+(System.currentTimeMillis()-startTime));
+        Log.i("FT", "seed:" + seed + ", vote:" + vote[0] + " " + vote[1] + " " + vote[2] + " " + vote[3] + " " + vote[4]);
+        Log.i("FT", "Processing time: " + (System.currentTimeMillis() - startTime));
 
         switch (seed) {
             case 0:
@@ -549,7 +532,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
                 _tvFinger.setText("2:Index");
                 return INDEX;
             case 2:
-                if(OUTPUT_DIM == 3)
+                if (OUTPUT_DIM == 3)
                     _tvFinger.setText("5:Little");
                 else
                     _tvFinger.setText("3:Middle");
@@ -564,7 +547,6 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         }
         return 0;
     }
-
 
 
     @Override
