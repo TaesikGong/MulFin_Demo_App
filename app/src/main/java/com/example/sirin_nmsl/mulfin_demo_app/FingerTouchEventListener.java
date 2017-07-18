@@ -49,6 +49,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     TextView _tvFinger = null;
     TypeSetter _setter = null;
 
+
     //Sensors
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
