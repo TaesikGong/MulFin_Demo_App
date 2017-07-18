@@ -13,11 +13,14 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.android.graphics.CanvasView;
+import com.opencsv.CSVWriter;
 
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 
 import weka.classifiers.Classifier;
@@ -48,7 +51,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
     CanvasView _canvas = null;
     TextView _tvFinger = null;
     TypeSetter _setter = null;
-
+    CSVWriter _writer = null;
 
     //Sensors
     private SensorManager mSensorManager;
@@ -81,7 +84,7 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 //            String model="J48_5fin_ts.model";
 //            String model="J48_2finlittle_ts.model";
 //            String model="J48_2finlittle_cv10_ts.model";
-            String model="J48_3fin_cv10_ts.model";
+            String model="J48_2fin_170718.model";
 
 //            String model="J48_3fin_ts.model";
 
@@ -98,6 +101,18 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
         _setter = new TypeSetter(_canvas);
         _tvFinger = tvFinger;
 
+        File folder;
+        folder = new File(Environment.getExternalStorageDirectory() + "/MulFin_Demo_Logs");
+        if (!folder.exists())
+            folder.mkdir();
+
+        try {
+            _writer = new CSVWriter(new FileWriter(new File(Environment.getExternalStorageDirectory()
+                    + "/MulFin_Demo_Logs/" +System.currentTimeMillis()+".csv"), true));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        _writer.writeNext(_sh.features);//write name of attributes
 
         //add sensor manages
         mSensorManager = (SensorManager) app.getSystemService(app.SENSOR_SERVICE);
@@ -203,12 +218,25 @@ public class FingerTouchEventListener implements SensorEventListener, View.OnTou
 
         List<String> list = _sh.getProcessedData();
 
+        String[] tmp = new String[list.size()];
+        for(int i=0;i<list.size();i++)
+            tmp[i] = list.get(i);
+        _writer.writeNext(tmp);//write data logs
+        try{
+            _writer.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+
         //https://stackoverflow.com/questions/12118132/adding-a-new-instance-in-weka
         ArrayList<Attribute> atts = new ArrayList<>(_sh.features.length-1);
 
 //        String []fingers={"f1","f2","f3","f4","f5"};
-        String []fingers={"f1","f2","f5"};
-//        String []fingers={"f1","f5"};
+//        String []fingers={"f1","f2","f5"};
+        String []fingers={"f1","f2"};
 
         FastVector fvClass = new FastVector(fingers.length);
         for(String s:fingers)
